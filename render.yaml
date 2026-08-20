@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: everyday-waste-guide
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: gunicorn web_app:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.15
+      - key: DATA_GO_KR_API_KEY
+        sync: false

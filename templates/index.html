@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="우리 동네 쓰레기 배출 일정과 가까운 수거함을 확인하세요.">
+  <title>버릴지도 — 우리 동네 배출 안내</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav"><a class="brand" href="#top">버릴지도</a><span>공식자료 기반 생활폐기물 안내</span></nav>
+    <div class="hero-copy" id="top">
+      <p class="eyebrow">오늘, 어디에 어떻게 버릴까요?</p>
+      <h1>헷갈리는 쓰레기 배출,<br><em>동네 기준으로</em> 한 번에.</h1>
+      <p>성균관대 주변 주요 생활권의 일정·분리배출·수거함·대형폐기물 정보를 모았습니다.</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="location-card" aria-labelledby="location-title">
+      <div><span class="step">01</span><h2 id="location-title">내 지역 선택</h2></div>
+      <div class="select-row">
+        <label>구<select id="district" aria-label="구 선택"></select></label>
+        <label>동<select id="dong" aria-label="동 선택"></select></label>
+        <button id="locate" class="button secondary" type="button">◎ 내 위치로 지역 찾기</button>
+      </div>
+      <p id="location-status" class="helper" role="status">가까운 지원 구·동을 자동 선택하고 일정·검색 결과·수거함을 갱신합니다. 위치는 저장하지 않습니다.</p>
+    </section>
+
+    <section class="grid top-grid">
+      <article class="panel schedule-panel">
+        <div class="panel-title"><span class="step">02</span><h2>생활쓰레기 일정</h2></div>
+        <div id="schedule" class="result muted">지역을 불러오는 중입니다.</div>
+      </article>
+      <article class="panel search-panel">
+        <div class="panel-title"><span class="step">03</span><h2>이건 어떻게 버리지?</h2></div>
+        <form id="guide-form" class="search-form">
+          <label class="sr-only" for="guide-query">품목명</label>
+          <input id="guide-query" list="item-list" placeholder="예: 우유팩, 깨진 유리, 칫솔" autocomplete="off">
+          <datalist id="item-list"></datalist>
+          <button class="button" type="submit">찾기</button>
+        </form>
+        <div id="guide-result" class="result muted">버리려는 물건의 이름을 검색해 보세요.</div>
+      </article>
+    </section>
+
+    <section class="panel boxes-panel">
+      <div class="panel-heading-row">
+        <div class="panel-title"><span class="step">04</span><h2>가까운 전용 수거함</h2></div>
+        <div class="tabs" role="tablist" aria-label="수거함 종류">
+          <button class="tab active" data-kind="폐의약품" type="button">폐의약품</button>
+          <button class="tab" data-kind="폐건전지" type="button">폐건전지</button>
+          <button class="tab" data-kind="폐형광등" type="button">폐형광등</button>
+        </div>
+      </div>
+      <div class="map-layout">
+        <div id="map" aria-label="수거함 지도"></div>
+        <div id="box-list" class="box-list muted">수거함 정보를 불러오려면 종류를 선택하세요.</div>
+      </div>
+      <p class="source-note">지도: © OpenStreetMap 기여자 · 방문 전 운영 여부를 시설에 확인해 주세요.</p>
+    </section>
+
+    <section class="panel bulky-panel">
+      <div class="panel-title"><span class="step">05</span><h2>대형폐기물 수수료·신고</h2></div>
+      <form id="bulky-form" class="search-form">
+        <label class="sr-only" for="bulky-query">대형폐기물 품목명</label>
+        <input id="bulky-query" placeholder="예: 의자, 책상, 매트리스" autocomplete="off">
+        <button class="button" type="submit">수수료 찾기</button>
+      </form>
+      <div id="bulky-result" class="result muted">품목을 검색하면 수수료와 관할 지자체 공식 신고 링크를 안내합니다.</div>
+    </section>
+  </main>
+
+  <footer>공공데이터와 지자체 공식 자료를 바탕으로 제공합니다. 실제 배출 전 관할 지자체의 최신 안내를 확인하세요.</footer>
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

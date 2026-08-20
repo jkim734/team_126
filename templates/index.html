@@ -4,12 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="우리 동네 쓰레기 배출 일정과 가까운 수거함을 확인하세요.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="버릴지도 — 우리 동네 배출 안내">
+  <meta property="og:description" content="우리 동네 쓰레기 배출 일정과 가까운 수거함을 확인하세요.">
+  <meta property="og:url" content="{{ site_url }}/">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="{{ site_url }}/">
   <title>버릴지도 — 우리 동네 배출 안내</title>
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script type="application/ld+json">{{ {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "버릴지도",
+    "url": site_url,
+    "description": "우리 동네 쓰레기 배출 일정과 가까운 수거함을 확인하는 생활폐기물 안내 서비스",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web"
+  } | tojson }}</script>
 </head>
-<body>
+<body data-ga-measurement-id="{{ analytics_measurement_id }}">
   <header class="hero">
     <nav class="nav"><a class="brand" href="#top">버릴지도</a><span>공식자료 기반 생활폐기물 안내</span></nav>
     <div class="hero-copy" id="top">
@@ -74,7 +92,22 @@
     </section>
   </main>
 
-  <footer>공공데이터와 지자체 공식 자료를 바탕으로 제공합니다. 실제 배출 전 관할 지자체의 최신 안내를 확인하세요.</footer>
+  <footer>
+    <p>공공데이터와 지자체 공식 자료를 바탕으로 제공합니다. 실제 배출 전 관할 지자체의 최신 안내를 확인하세요.</p>
+    <a href="{{ url_for('privacy') }}">개인정보 처리방침</a>
+  </footer>
+  {% if analytics_measurement_id %}
+  <aside id="analytics-consent" class="consent" hidden aria-labelledby="consent-title">
+    <div>
+      <strong id="consent-title">분석 쿠키 사용</strong>
+      <p>서비스 개선을 위해 Google Analytics를 사용합니다. 정확한 위치와 검색어는 전송하지 않습니다.</p>
+    </div>
+    <div class="consent-actions">
+      <button id="analytics-reject" class="button secondary" type="button">거부</button>
+      <button id="analytics-accept" class="button" type="button">동의</button>
+    </div>
+  </aside>
+  {% endif %}
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>

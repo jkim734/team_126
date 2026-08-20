@@ -23,6 +23,41 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors",
 }).addTo(map);
 
+function trackEvent(name, params = {}) {
+  if (typeof window.gtag === "function") window.gtag("event", name, params);
+}
+
+function enableAnalytics(measurementId) {
+  if (!measurementId || typeof window.gtag === "function") return;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() { window.dataLayer.push(arguments); };
+  window.gtag("js", new Date());
+  window.gtag("config", measurementId, { anonymize_ip: true });
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+  document.head.appendChild(script);
+}
+
+function initAnalyticsConsent() {
+  const measurementId = document.body.dataset.gaMeasurementId;
+  const consent = $("#analytics-consent");
+  if (!measurementId || !consent) return;
+  const choice = localStorage.getItem("analytics-consent");
+  if (choice === "granted") return enableAnalytics(measurementId);
+  if (choice === "denied") return;
+  consent.hidden = false;
+  $("#analytics-accept").addEventListener("click", () => {
+    localStorage.setItem("analytics-consent", "granted");
+    consent.hidden = true;
+    enableAnalytics(measurementId);
+  });
+  $("#analytics-reject").addEventListener("click", () => {
+    localStorage.setItem("analytics-consent", "denied");
+    consent.hidden = true;
+  });
+}
+
 function escapeHtml(value) {
   const node = document.createElement("div");
   node.textContent = String(value ?? "");
@@ -152,6 +187,11 @@ async function searchGuide(event) {
   target.textContent = "배출 방법을 찾는 중…";
   try {
     const body = await api("/api/search", { q: query, district: district.value });
+    trackEvent("search_disposal_guide", {
+      district: district.value,
+      has_results: body.results.length > 0,
+      result_count: body.results.length,
+    });
     if (!body.results.length) { target.className = "result muted"; target.textContent = body.message; return; }
     target.className = "result";
     target.innerHTML = body.results.map((item) => `<article class="guide-card"><span class="pill">${escapeHtml(item.category)}</span><h3>${escapeHtml(item.item)}</h3><p>${escapeHtml(item.method)}</p><p class="caution">주의 · ${escapeHtml(item.caution)}</p>${item.reportUrl ? `<a class="official-link" href="${escapeHtml(item.reportUrl)}" target="_blank" rel="noopener noreferrer">공식 신고 페이지 ↗</a>` : ""}</article>`).join("");
@@ -165,6 +205,11 @@ async function searchBulky(event) {
   target.textContent = "수수료를 확인하는 중…";
   try {
     const body = await api("/api/bulky", { q: query, district: district.value });
+    trackEvent("search_bulky_waste", {
+      district: district.value,
+      has_results: body.fees.length > 0,
+      result_count: body.fees.length,
+    });
     const rows = body.fees.length ? `<table class="fee-table"><thead><tr><th>품목</th><th>규격</th><th>수수료</th></tr></thead><tbody>${body.fees.map((fee) => `<tr><td>${escapeHtml(fee.name)}</td><td>${escapeHtml(fee.detail)}</td><td>${escapeHtml(fee.fee)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">일치하는 수수료 항목을 찾지 못했습니다. 공식 신고 페이지에서 직접 확인해 주세요.</p>`;
     target.className = "result";
     target.innerHTML = rows + `<a class="official-link" href="${escapeHtml(body.reportUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(district.value)} 공식 대형폐기물 신고 ↗</a>`;
@@ -181,6 +226,7 @@ function locate() {
     state.position = { lat: position.coords.latitude, lon: position.coords.longitude };
     const matched = nearestSupportedLocation(state.position.lat, state.position.lon);
     if (!matched) {
+      trackEvent("use_location", { status: "outside_supported_area" });
       status.textContent = "현재 위치가 지원 지역에서 멀어 기존 지역 선택을 유지합니다. 위치는 저장하지 않습니다.";
       button.disabled = false;
       await loadBoxes();
@@ -190,6 +236,7 @@ function locate() {
     district.value = matched.district;
     fillDongs();
     dong.value = matched.dong;
+    trackEvent("use_location", { status: "success", district: matched.district });
     status.textContent = `${matched.district} ${dong.options[dong.selectedIndex].text}으로 자동 선택했습니다. 위치는 저장하지 않습니다.`;
 
     const refreshes = [loadSchedule(), loadBoxes()];
@@ -206,6 +253,7 @@ function locate() {
       2: "현재 위치를 확인할 수 없습니다. Windows 위치 서비스를 켜고 다시 시도해 주세요.",
       3: "위치 확인 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.",
     };
+    trackEvent("use_location", { status: error.code === 1 ? "denied" : "error" });
     showToast(messages[error.code] || "위치를 확인하지 못했습니다. 브라우저 위치 설정을 확인해 주세요.");
   }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
 }
@@ -220,13 +268,25 @@ async function init() {
   } catch (error) { showToast(error.message); }
 }
 
-district.addEventListener("change", () => { fillDongs(); loadSchedule(); loadBoxes(); });
-dong.addEventListener("change", () => { loadSchedule(); loadBoxes(); });
+district.addEventListener("change", () => {
+  fillDongs(); loadSchedule(); loadBoxes();
+  trackEvent("select_region", { district: district.value });
+});
+dong.addEventListener("change", () => {
+  loadSchedule(); loadBoxes();
+  trackEvent("select_dong", { district: district.value, dong: dong.value });
+});
 $("#locate").addEventListener("click", locate);
 $("#guide-form").addEventListener("submit", searchGuide);
 $("#bulky-form").addEventListener("submit", searchBulky);
 document.querySelectorAll(".tab").forEach((button) => button.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach((tab) => tab.classList.remove("active"));
   button.classList.add("active"); state.kind = button.dataset.kind; loadBoxes();
+  trackEvent("select_collection_box_kind", { kind: state.kind, district: district.value });
 }));
+document.addEventListener("click", (event) => {
+  const link = event.target.closest(".official-link");
+  if (link) trackEvent("click_official_link", { district: district.value });
+});
+initAnalyticsConsent();
 init();

@@ -10,7 +10,7 @@ import math
 import os
 from typing import Any, Callable
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 import waste_api
 
@@ -18,6 +18,8 @@ import waste_api
 app = Flask(__name__)
 app.json.ensure_ascii = False
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
+
+SITE_URL = os.getenv("SITE_URL", "https://team-126-qd9y.vercel.app").rstrip("/")
 
 BULKY_SEARCH_ALIASES = {
     "매트리스": "침대",
@@ -160,7 +162,36 @@ def _public_call(callback: Callable[[], Any]):
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        analytics_measurement_id=os.getenv("GA_MEASUREMENT_ID", "").strip(),
+        google_site_verification=os.getenv(
+            "GOOGLE_SITE_VERIFICATION", ""
+        ).strip(),
+        site_url=SITE_URL,
+    )
+
+
+@app.get("/privacy")
+def privacy():
+    return render_template("privacy.html", site_url=SITE_URL)
+
+
+@app.get("/robots.txt")
+def robots():
+    body = f"User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: {SITE_URL}/sitemap.xml\n"
+    return Response(body, content_type="text/plain; charset=utf-8")
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    body = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{SITE_URL}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>{SITE_URL}/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+</urlset>
+"""
+    return Response(body, content_type="application/xml; charset=utf-8")
 
 
 @app.get("/health")

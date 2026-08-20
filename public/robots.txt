@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://team-126-qd9y.vercel.app/sitemap.xml
